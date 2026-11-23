@@ -29,15 +29,26 @@ namespace MagfaSms.Soap
 
         private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
-        /// <summary>ساخت پاکت SOAP برای یک متد</summary>
+        /// <summary>
+        /// ساخت پاکت SOAP برای یک متد — دقیقاً همان ساختار پاکت سازگار با سرویس مگفا:
+        /// <code>
+        ///   &lt;?xml version="1.0" encoding="utf-8"?&gt;
+        ///   &lt;soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="webservice.magfa.com"&gt;
+        ///   &lt;soapenv:Header/&gt;
+        ///   &lt;soapenv:Body&gt;
+        ///   &lt;urn:balance/&gt;
+        ///   &lt;/soapenv:Body&gt;
+        ///   &lt;/soapenv:Envelope&gt;
+        /// </code>
+        /// </summary>
         /// <param name="operation">نام متد (balance , send , mid , statuses , messages)</param>
         /// <param name="parameters">پارامترهای متد (با نام partName مستندات)</param>
         public static string BuildRequest(string operation, params XElement[] parameters)
         {
-            XNamespace soap = EnvelopeNamespace;
-            XNamespace op = OperationNamespace;
+            XNamespace soapenv = EnvelopeNamespace;
+            XNamespace urn = OperationNamespace;
 
-            var body = new XElement(op + operation);
+            var body = new XElement(urn + operation);
             if (parameters != null)
             {
                 foreach (XElement parameter in parameters)
@@ -48,11 +59,13 @@ namespace MagfaSms.Soap
 
             var doc = new XDocument(
                 new XDeclaration("1.0", "utf-8", null),
-                new XElement(soap + "Envelope",
-                    new XAttribute(XNamespace.Xmlns + "soap", EnvelopeNamespace),
-                    new XElement(soap + "Body", body)));
+                new XElement(soapenv + "Envelope",
+                    new XAttribute(XNamespace.Xmlns + "soapenv", EnvelopeNamespace),
+                    new XAttribute(XNamespace.Xmlns + "urn", OperationNamespace),
+                    new XElement(soapenv + "Header"),
+                    new XElement(soapenv + "Body", body)));
 
-            return doc.ToString(SaveOptions.DisableFormatting);
+            return doc.ToString();
         }
 
         /// <summary>پارامتر آرایه‌ای رشته (stringArray)</summary>
@@ -139,12 +152,20 @@ namespace MagfaSms.Soap
             return returned ?? wrapper;
         }
 
-        /// <summary>اولین فرزند مستقیم با این نام (بدون توجه به namespace)</summary>
+        /// <summary>
+        /// اولین عنصر با این نام (بدون توجه به namespace):
+        /// اول فرزندان مستقیم، اگر نبود در کل زیردرخت دنبال می‌شود —
+        /// دقیقاً مثل doc.Descendants().FirstOrDefault(x => x.Name.LocalName == name)
+        /// </summary>
         public static XElement Child(XElement parent, string localName)
         {
             if (parent == null) return null;
 
-            return parent.Elements().FirstOrDefault(
+            XElement direct = parent.Elements().FirstOrDefault(
+                e => string.Equals(e.Name.LocalName, localName, StringComparison.Ordinal));
+            if (direct != null) return direct;
+
+            return parent.Descendants().FirstOrDefault(
                 e => string.Equals(e.Name.LocalName, localName, StringComparison.Ordinal));
         }
 

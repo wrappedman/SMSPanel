@@ -226,11 +226,13 @@ using (var client = new MagfaSoapClient("myUsername", "myServicePass", "magfa", 
 * پاکت ارسالی **SOAP 1.1 / RPC-Literal** با `namespace` عملیات `webservice.magfa.com` ساخته می‌شود
   (بر اساس WSDL سرویس). برای متد `balance` مثلاً:
   ```xml
-  <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-    <soap:Body>
-      <balance xmlns="webservice.magfa.com" />
-    </soap:Body>
-  </soap:Envelope>
+  <?xml version="1.0" encoding="utf-8"?>
+  <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="webservice.magfa.com">
+    <soapenv:Header/>
+    <soapenv:Body>
+      <urn:balance/>
+    </soapenv:Body>
+  </soapenv:Envelope>
   ```
 * پاسخ **بدون توجه به namespace** خوانده می‌شود (بر اساس نام عنصر)، پس به تفاوت‌های کوچک در خروجی سرور حساس نیست.
 * برای دیباگ، پراپرتی‌های `LastRequestXml` و `LastResponseXml` آخرین درخواست/پاسخ خام را نگه می‌دارند.
