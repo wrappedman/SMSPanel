@@ -1,238 +1,92 @@
-# MagfaSms — کتابخانه‌ی C# سرویس HTTP v2 مگفا
+# MagfaSms — نسخه ۱ HTTP و نسخه ۲ SOAP
 
-یک **کتابخانه‌ی Class Library** (خروجی: فقط یک فایل `MagfaSms.dll`) برای کار با
-[سرویس HTTP v2 مگفا](https://messaging.magfa.com/ui/?public/wiki/api/http_v2) روی **.NET Framework 4.8**.
+دو کتابخانه‌ی **Class Library** مستقل (هر کدام خروجی‌اش فقط یک فایل `.dll` است) برای کار با سرویس‌های پیامک مگفا روی **.NET Framework 4.8**، بدون هیچ وابستگی خارجی.
 
-مناسب برای برنامه‌های WinForms، WPF، ASP.NET، کنسولی و سرویس‌های ویندوزی.
-**بدون هیچ وابستگی خارجی** (فقط اسمبلی‌های داخلی دات‌نت فریم‌ورک).
+| نسخه | پوشه | DLL | سرویس مقصد |
+|---|---|---|---|
+| **نسخه ۱ — HTTP** | `MagfaSms/` | `MagfaSms.dll` | `https://sms.magfa.com/api/http/sms/v2` |
+| **نسخه ۲ — SOAP** | `MagfaSmsSoap/` | `MagfaSmsSoap.dll` | `https://sms.magfa.com/api/soap/sms/v2/server` |
+
+هر دو کلاینت ساختار یکسانی دارند (همان نام متدها و مدل‌ها) تا بتوانید یکی را با کشیدن رفرنس عوض کنید.
 
 ---
 
-## فایل‌های پروژه
+## فایل‌ها
 
-| مسیر | نقش |
-|---|---|
-| `MagfaSms/MagfaClient.cs` | کلاینت اصلی و توابع سرویس |
-| `MagfaSms/MagfaModels.cs` | مدل‌های داده و کلاس `MagfaException` |
-| `MagfaSms/MagfaErrors.cs` | جدول کدها و وضعیت‌ها |
-| `MagfaSms/MagfaSms.csproj` | فایل پروژه |
-| `README.md` | همین فایل راهنما |
+```
+MagfaSms/                 ← نسخه ۱ (HTTP v2)
+  MagfaClient.cs
+  MagfaModels.cs
+  MagfaErrors.cs
+  MagfaSms.csproj
+
+MagfaSmsSoap/             ← نسخه ۲ (SOAP v2)
+  MagfaSoapClient.cs
+  MagfaSoapModels.cs
+  MagfaSoapErrors.cs
+  SoapMessage.cs
+  MagfaSmsSoap.csproj
+
+README.md                 ← همین فایل
+```
 
 ---
 
 ## ۱) بیلد و گرفتن DLL
 
-**با ویژوال استودیو:**
-سلوشن را باز کنید → `Build` → `Build Solution` (یا `Ctrl+Shift+B`).
+**با ویژوال استودیو:** سلوشن را باز کنید → `Build` → `Build Solution`.
 
 **با خط فرمان:**
 ```
 msbuild MagfaSms\MagfaSms.csproj /p:Configuration=Release
+msbuild MagfaSmsSoap\MagfaSmsSoap.csproj /p:Configuration=Release
 ```
-یا اگر `dotnet` دارید:
+یا:
 ```
 dotnet build MagfaSms\MagfaSms.csproj -c Release
+dotnet build MagfaSmsSoap\MagfaSmsSoap.csproj -c Release
 ```
 
-خروجی (فقط یک فایل):
+خروجی‌ها (هر کدام فقط یک فایل):
 
 ```
-MagfaSms\bin\Debug\net48\MagfaSms.dll       ← بیلد Debug
-MagfaSms\bin\Release\net48\MagfaSms.dll     ← بیلد Release
+MagfaSms\bin\Release\net48\MagfaSms.dll
+MagfaSmsSoap\bin\Release\net48\MagfaSmsSoap.dll
 ```
-
-> همین یک `MagfaSms.dll` را کپی می‌کنید و در برنامه‌های مختلف رفرنس می‌دهید.
 
 ---
 
 ## ۲) افزودن به پروژه‌ی خود
 
-**روش ساده (رفرنس مستقیم به DLL):**
 1. در Solution Explorer روی `References` (یا `Dependencies`) راست‌کلیک → `Add Reference…`
-2. تب `Browse` → `Browse…` → فایل `MagfaSms.dll` را انتخاب → `OK`
+2. تب `Browse` → `Browse…` → فایل DLL مدنظر را انتخاب → `OK`
 
-**اگر پروژه‌ی خودتان SDK-style است** و خطای «مرجع داده نشده» گرفتید، این دو رفرنس را هم اضافه کنید:
+**اگر پروژه‌ی شما SDK-style است** و خطای «مرجع داده نشده» گرفتید، این رفرنس‌ها را اضافه کنید:
 ```
 System.Net.Http
-System.Web.Extensions
+System.Web.Extensions      ← فقط برای نسخه HTTP
+System.Xml.Linq            ← فقط برای نسخه SOAP
 ```
-(این‌ها اسمبلی‌های خودِ دات‌نت فریم‌ورک‌اند و نیازی به NuGet ندارند.)
-
-**روش دوم (اضافه‌کردن پروژه به سلوشن):** در سلوشن خود `Add → Existing Project` و انتخاب `MagfaSms.csproj`، بعد از پروژه‌ی خودتان `Add → Project Reference`.
+(همه‌ی این‌ها اسمبلی‌های خود دات‌نت فریم‌ورک‌اند؛ نیازی به NuGet ندارند.)
 
 ---
 
-## ۳) نمونه‌ی کامل (از صفر تا اجرا)
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using MagfaSms;                 // ← این using بعد از دادن رفرنس کار می‌کند
-
-namespace MyApp
-{
-    class Program
-    {
-        static async Task Main(string[] args)
-        {
-            // ---------- ساخت کلاینت ----------
-            using (var client = new MagfaClient(
-                username:      "myUsername",     // نام‌کاربری پنل مگفا
-                password:      "myServicePass",  // رمز «عبور سرویس» (نه رمز ورود پنل)
-                domain:        "magfa",          // دامنه‌ی حساب (اکثر حساب‌ها: magfa)
-                defaultSender: "3000xxxxx"))     // شماره‌ی فرستنده
-            {
-                // ---------- ۱) مانده اعتبار ----------
-                BalanceResult balance = await client.GetBalanceAsync();
-                Console.WriteLine("اعتبار: " + balance.Balance + " ریال");
-
-                // ---------- ۲) ارسال پیامک ----------
-                SendResult send = await client.SendAsync(new SendRequest
-                {
-                    Recipients = new[] { "09120000000" },
-                    Messages   = new[] { "سلام، این یک پیامک تستی است" },
-                    Uids       = new long[] { 1001 }   // اختیاری: برای جلوگیری از ارسال تکراری
-                });
-
-                foreach (SendMessageResult m in send.Messages)
-                {
-                    Console.WriteLine("گیرنده: " + m.Recipient
-                                    + " | mid: " + m.Id
-                                    + " | وضعیت: " + m.Status
-                                    + " | بخش‌ها: " + m.Parts
-                                    + " | تعرفه: " + m.Tariff
-                                    + " | الفبا: " + m.Alphabet);
-                }
-
-                long mid = send.Messages[0].Id;
-
-                // ---------- ۳) پیگیری وضعیت تحویل ----------
-                StatusesResult statuses = await client.GetStatusesAsync(new long[] { mid });
-                foreach (DeliveryStatus d in statuses.Dlrs)
-                    Console.WriteLine("mid " + d.Mid + " → " + d.Status + " (" + d.StatusText + ")");
-
-                // ---------- ۴) گرفتن mid از روی uid ----------
-                MidResult midResult = await client.GetMidAsync(1001);
-                Console.WriteLine("uid 1001 → mid " + midResult.Mid);
-
-                // ---------- ۵) پیامک‌های ورودی ----------
-                ReceivedMessagesResult inbox = await client.GetReceivedMessagesAsync(20);
-                foreach (ReceivedMessage m in inbox.Messages)
-                    Console.WriteLine(m.Date + " | از " + m.SenderNumber + " : " + m.Body);
-            }
-        }
-    }
-}
-```
-
-> **برنامه‌ی کنسولی باشد:** اگر `Main` شما `async Task` نیست یا نسخه‌ی C# شما کمتر از ۷.۱ است،
-> `static void Main` بسازید و `Main` را این‌طور بنویسید:
-> `RunAsync().GetAwaiter().GetResult();`
-> یا از نسخه‌های همگام استفاده کنید: `client.GetBalance()` ،`client.Send(...)` ،`client.GetStatuses(...)` و…
-
----
-
-## ۴) نمونه به‌ازای هر تابع
-
-### ساخت کلاینت
-```csharp
-using (var client = new MagfaClient("myUsername", "myServicePass", "magfa", "3000xxxxx"))
-{
-    // ...
-}
-```
-
-### `GetBalanceAsync` — مانده اعتبار
-```csharp
-BalanceResult r = await client.GetBalanceAsync();
-// r.Balance  → long?   (ریال)
-```
-
-### `SendAsync` — ارسال
-
-**یک پیام به یک گیرنده:**
-```csharp
-SendResult r = await client.SendAsync("09120000000", "متن پیامک");
-```
-
-**یک پیام به چند گیرنده (یک به چند):**
-```csharp
-SendResult r = await client.SendAsync(
-    new[] { "09120000000", "09121111111", "09351234567" },
-    "متن یکسان برای همه");
-```
-
-**پیام متفاوت برای هر گیرنده (چند به چند):**
-```csharp
-SendResult r = await client.SendAsync(new SendRequest
-{
-    Recipients = new[] { "09120000000", "09121111111" },
-    Messages   = new[] { "متن برای اول", "متن برای دوم" },
-    Senders    = new[] { "3000xxxxx", "3000yyyyy" },   // اختیاری
-    Uids       = new long[] { 1001, 1002 },            // اختیاری
-    Encodings  = new[] { (int)MagfaEncoding.Persian }, // اختیاری، پیش‌فرض تشخیص خودکار
-    Udhs       = new string[] { "" }                   // اختیاری
-});
-```
-
-**خروجی ارسال:**
-```csharp
-Console.WriteLine("موفق: " + r.SuccessCount + " | ناموفق: " + r.FailCount);
-foreach (SendMessageResult m in r.Messages)
-{
-    if (m.Status == 0)
-        Console.WriteLine("mid=" + m.Id + " parts=" + m.Parts + " tariff=" + m.Tariff + " alphabet=" + m.Alphabet);
-    else
-        Console.WriteLine("خطا " + m.Status + ": " + MagfaErrors.GetMessage(m.Status));
-}
-```
-
-> **بیش از ۱۰۰ گیرنده:** لازم نیست خودتان دسته‌بندی کنید؛ کلاینت خودش به دسته‌های ۱۰۰تایی تقسیم می‌کند
-> و نتیجه‌ی همه را در یک `SendResult` برمی‌گاند.
-
-### `GetMidAsync` — شناسه‌ی یکتای پیامک از روی uid
-```csharp
-MidResult r = await client.GetMidAsync(1001);
-// r.Mid  → long  (یا -1 اگر یافت نشود)
-```
-کاربرد: اگر هنگام ارسال با TIMEOUT مواجه شدید، با همان `uid` بپرسید آیا پیامک قبلاً رفته یا نه تا
-از ارسال دوباره جلوگیری کنید.
-
-### `GetStatusesAsync` — وضعیت تحویل
-```csharp
-StatusesResult r = await client.GetStatusesAsync(new long[] { 111111111, 222222222 });
-foreach (DeliveryStatus d in r.Dlrs)
-    Console.WriteLine(d.Mid + " → " + d.StatusText + " (" + d.Status + ") در " + d.Date);
-```
-حداکثر ۱۰۰ شناسه در هر درخواست (کلاینت خودش دسته‌بندی می‌کند).
-
-### `GetReceivedMessagesAsync` — پیامک‌های ورودی
-```csharp
-ReceivedMessagesResult r = await client.GetReceivedMessagesAsync(20);
-// count پیش‌فرض = 100 ؛ اگر کمتر از ۱ یا بیش از ۱۰۰ بدهید، ۱۰۰ در نظر گرفته می‌شود.
-foreach (ReceivedMessage m in r.Messages)
-    Console.WriteLine(m.Date + " | " + m.SenderNumber + " → " + m.RecipientNumber + " | " + m.Body);
-```
-
----
-
-## ۵) اعتبارنامه‌ها و دامنه
+## ۳) اعتبارنامه‌ها
 
 سه مدارک ورود حساب مگفا (از پنل `https://messaging.magfa.com/ui/`):
 
-| پارامتر کلاینت | منبع |
+| پارامتر | منبع |
 |---|---|
 | `username` | نام‌کاربری پنل |
 | `password` | **رمز عبور سرویس** — پنل ← «مدیریت حساب» ← «رمز عبور و امنیت» |
 | `domain` | دامنه‌ی حساب — برای اکثر حساب‌ها `magfa` |
 
-در درخواست HTTP این‌ها به‌صورت `username/domain:password` در هدر `Authorization` (Basic) ترکیب می‌شوند —
-که کلاینت خودش انجام می‌دهد.
+در هر دو نسخه، این‌ها به‌صورت `username/domain:password` در هدر `Authorization` (Basic) ترکیب می‌شوند.
 
-**اگر دامنه اشتباه باشد:** خطای `19`؛ اگر نام‌کاربری/رمز اشتباه باشد: خطای `18`.
+> اگر دامنه اشتباه باشد: کد `19`؛ اگر نام‌کاربری/رمز اشتباه باشد: کد `18`؛
+> اگر سرویس برای حساب فعال نباشد: کد `22`.
 
-### نکته‌ی امنیتی
-رمز عبور را در کد هاردکد نکنید. به‌عنوان نمونه در `app.config`:
+### نمونه‌ی امن برای نگه‌داشتن رمز (app.config)
 
 ```xml
 <appSettings>
@@ -250,15 +104,160 @@ string username = ConfigurationManager.AppSettings["Magfa:Username"];
 string password = ConfigurationManager.AppSettings["Magfa:Password"];
 string domain   = ConfigurationManager.AppSettings["Magfa:Domain"];
 string sender   = ConfigurationManager.AppSettings["Magfa:Sender"];
-
-var client = new MagfaClient(username, password, domain, sender);
 ```
 
 ---
 
-## ۶) مدیریت خطا
+# نسخه ۱ — HTTP  (`MagfaSms.dll`)
 
-اگر سرور کد `status` غیر از صفر برگرداند، یا پاسخ نامعتبر/خطای HTTP باشد، یک
+```csharp
+using MagfaSms;
+
+using (var client = new MagfaClient(username, password, domain, sender))
+{
+    // ۱) مانده اعتبار
+    BalanceResult balance = await client.GetBalanceAsync();
+    Console.WriteLine("اعتبار: " + balance.Balance + " ریال");
+
+    // ۲) ارسال
+    SendResult send = await client.SendAsync(new SendRequest
+    {
+        Recipients = new[] { "09120000000" },
+        Messages   = new[] { "سلام، این یک پیامک تستی است" },
+        Uids       = new long[] { 1001 }    // اختیاری
+    });
+
+    foreach (SendMessageResult m in send.Messages)
+        Console.WriteLine(m.Recipient + " | mid=" + m.Id + " | status=" + m.Status
+                          + " | parts=" + m.Parts + " | tariff=" + m.Tariff
+                          + " | alphabet=" + m.Alphabet);
+
+    // ۳) وضعیت تحویل
+    StatusesResult st = await client.GetStatusesAsync(new long[] { send.Messages[0].Id });
+    foreach (DeliveryStatus d in st.Dlrs)
+        Console.WriteLine(d.Mid + " → " + d.StatusText + " (" + d.Status + ")");
+
+    // ۴) mid از روی uid
+    MidResult mid = await client.GetMidAsync(1001);
+    Console.WriteLine("mid=" + mid.Mid);
+
+    // ۵) پیامک‌های ورودی
+    ReceivedMessagesResult inbox = await client.GetReceivedMessagesAsync(20);
+    foreach (ReceivedMessage m in inbox.Messages)
+        Console.WriteLine(m.Date + " | از " + m.SenderNumber + " : " + m.Body);
+}
+```
+
+### ساخت کلاینت HTTP
+```csharp
+using (var client = new MagfaClient("myUsername", "myServicePass", "magfa", "3000xxxxx"))
+```
+اگر پورت/آدرس را می‌خواهید عوض کنید، سازنده‌ی ۵ آرگومانی را با `baseUrl` استفاده کنید.
+
+### متدهای HTTP
+
+| متد مگفا | متد کلاینت | توضیح |
+|---|---|---|
+| `balance` | `GetBalanceAsync()` | مانده اعتبار (`Balance` از نوع `long?`) |
+| `send` | `SendAsync(request)` | ارسال (با دسته‌بندی خودکار ۱۰۰تایی) |
+| `mid` | `GetMidAsync(uid)` | شناسه‌ی یکتای پیامک از روی uid |
+| `statuses` | `GetStatusesAsync(mids)` | وضعیت تحویل (حداکثر ۱۰۰ در هر درخواست) |
+| `messages` | `GetReceivedMessagesAsync(count)` | پیامک‌های ورودی |
+
+---
+
+# نسخه ۲ — SOAP  (`MagfaSmsSoap.dll`)
+
+```csharp
+using MagfaSms.Soap;
+
+using (var client = new MagfaSoapClient(username, password, domain, sender))
+{
+    // ۱) مانده اعتبار
+    BalanceResult balance = await client.GetBalanceAsync();
+    Console.WriteLine("اعتبار: " + balance.Balance);
+
+    // ۲) ارسال
+    SendResult send = await client.SendAsync(new SendRequest
+    {
+        Messages   = new[] { "سلام، این یک پیامک تستی است" },
+        Senders    = new[] { "3000xxxxx" },
+        Recipients = new[] { "09120000000" },
+        Uids       = new long[] { 1001 },        // اختیاری
+        Encodings  = new[] { (int)MagfaEncoding.Persian }, // اختیاری
+        Udhs       = new string[] { "" },        // اختیاری
+        Priorities = new[] { 0 }                 // اختیاری (در مگفا استفاده نمی‌شود)
+    });
+
+    foreach (SendMessageResult m in send.Messages)
+        Console.WriteLine(m.Recipient + " | mid=" + m.Id + " | status=" + m.Status);
+
+    // ۳) وضعیت تحویل
+    StatusesResult st = await client.GetStatusesAsync(new long[] { send.Messages[0].Id });
+    foreach (DeliveryStatus d in st.Dlrs)
+        Console.WriteLine(d.Mid + " → " + d.StatusText + " (" + d.Status + ")");
+
+    // ۴) mid از روی uid
+    MidResult mid = await client.GetMidAsync(1001);
+
+    // ۵) پیامک‌های ورودی (اختیاری: فقط یک شماره‌ی خاص)
+    ReceivedMessagesResult inbox = await client.GetReceivedMessagesAsync(20);
+    ReceivedMessagesResult ofOne = await client.GetReceivedMessagesAsync(20, "3000xxxxx");
+}
+```
+
+### ساخت کلاینت SOAP
+```csharp
+using (var client = new MagfaSoapClient("myUsername", "myServicePass", "magfa", "3000xxxxx"))
+```
+سازنده‌ی ۵ آرگومانی آدرس سرویس را عوض می‌کند (`endpoint`).
+
+### متدهای SOAP
+
+| متد مگفا | متد کلاینت | توضیح |
+|---|---|---|
+| `balance` | `GetBalanceAsync()` | مانده اعتبار (`Balance` از نوع `decimal?`) |
+| `send` | `SendAsync(request)` | ارسال (با دسته‌بندی خودکار ۱۰۰تایی) |
+| `mid` | `GetMidAsync(uid)` | شناسه‌ی یکتای پیامک از روی uid |
+| `statuses` | `GetStatusesAsync(mids)` | وضعیت تحویل |
+| `messages` | `GetReceivedMessagesAsync(count, shortNumber)` | پیامک‌های ورودی |
+
+### نکات فنی نسخه SOAP
+* پاکت ارسالی **SOAP 1.1 / RPC-Literal** با `namespace` عملیات `webservice.magfa.com` ساخته می‌شود
+  (بر اساس WSDL سرویس). برای متد `balance` مثلاً:
+  ```xml
+  <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Body>
+      <balance xmlns="webservice.magfa.com" />
+    </soap:Body>
+  </soap:Envelope>
+  ```
+* پاسخ **بدون توجه به namespace** خوانده می‌شود (بر اساس نام عنصر)، پس به تفاوت‌های کوچک در خروجی سرور حساس نیست.
+* برای دیباگ، پراپرتی‌های `LastRequestXml` و `LastResponseXml` آخرین درخواست/پاسخ خام را نگه می‌دارند.
+* پاسخ‌های GZIP به‌صورت خودکار بازگشایی می‌شوند.
+
+### روش جایگزین و تضمینی (Add Service Reference)
+اگر با نسخه‌ی دست‌ساز به خطای SOAP خوردید، مسیر استاندارد مایکروسافت و مگفا این است:
+
+1. در ویژوال استودیو روی پروژه → `Add → Service Reference…` → `Advanced…` → `Add Web Reference…`
+2. آدرس WSDL را بگذارید: `https://sms.magfa.com/api/soap/sms/v2/server?wsdl`
+3. نامی مثل `MagfaWebService` بدهید و `Add Reference`
+4. در کد:
+```csharp
+var service = new MagfaWebService.MagfaSoapServer();
+service.Credentials = new System.Net.NetworkCredential(username + "/" + domain, password);
+service.EnableDecompression = true;
+
+var result = service.balance();
+if (result.status != 0) Console.WriteLine(result.status);
+else Console.WriteLine(result.balance);
+```
+
+---
+
+## ۴) مدیریت خطا (در هر دو نسخه)
+
+اگر سرور کد `status` غیر از صفر برگرداند (یا پاسخ نامعتبر/خطای HTTP/SOAP باشد)، یک
 `MagfaException` با متن فارسی و پراپرتی `Status` پرتاب می‌شود:
 
 ```csharp
@@ -269,17 +268,17 @@ try
 catch (MagfaException ex)
 {
     Console.WriteLine("کد: " + ex.Status);
-    Console.WriteLine("متن: " + ex.Message);   // مثلاً «مانده اعتبار ریالی کافی نیست»
+    Console.WriteLine("متن: " + ex.Message);
 }
 ```
 
-نکته: در متد `send`، اگر یک پیامک خاص ناموفق باشد، کل درخواست خطا **نمی‌دهد**؛
-نتیجه‌ی هر پیامک در `SendResult.Messages[*].Status` می‌آید و متن فارسی‌اش با
-`MagfaErrors.GetMessage(status)` قابل دسترس است.
+نکته: در متد `send`، اگر یک پیامک خاص ناموفق باشد، کل درخواست خطا نمی‌دهد؛ نتیجه‌ی هر پیامک در
+`SendResult.Messages[*].Status` می‌آید (در نسخه HTTP با `MagfaErrors.GetMessage(status)` و در نسخه SOAP
+با `MagfaSoapErrors.GetMessage(status)` متن فارسی‌اش را بگیرید).
 
 ---
 
-## ۷) جدول کدهای خطا (کامل)
+## ۵) جدول کدهای خطا (در هر دو نسخه یکسان)
 
 | کد | معنی |
 |---|---|
@@ -333,17 +332,18 @@ catch (MagfaException ex)
 
 ---
 
-## ۸) نکات و محدودیت‌ها
+## ۶) نکات و محدودیت‌ها
 
-* **حداکثر ۱۰۰ گیرنده** در هر درخواست `send` (کلاینت خودش دسته‌بندی می‌کند).
-* **حداکثر ۱۰۰ شناسه** در هر درخواست `statuses` (کلاینت خودش دسته‌بندی می‌کند).
+* **حداکثر ۱۰۰ گیرنده** در هر درخواست `send` و **۱۰۰ شناسه** در `statuses` — هر دو کلاینت خودشان دسته‌بندی می‌کنند.
 * **فرمت شماره‌ها:** فرستنده `3000xxxxxx` / `983000xxxxxx` / `+983000xxxxxx` ؛
   گیرنده `09xxxxxxxxx` / `989xxxxxxxxx` / `+989xxxxxxxxx` / `9xxxxxxxxx`.
-* **متن پیامک:** UTF-8 (کلاینت خودش این‌طور ارسال می‌کند). حداکثر: لاتین ۱۶۰ کاراکتر،
-  فارسی ۷۰ کاراکتر، باینری ۱۴۰ بایت. در پیامک چندبخشی: لاتین ۱۵۳ و فارسی ۶۷ کاراکتر در هر بخش (سقف ۲۶۵ بخش).
-* **فشرده‌سازی:** پاسخ‌های GZIP به‌صورت خودکار بازگشایی می‌شوند.
-* ** Timeout:** پیش‌فرض ۶۰ ثانیه است؛ با پراپرتی `client.Timeout` قابل تغییر است.
+* **متن پیامک:** UTF-8. حداکثر: لاتین ۱۶۰ کاراکتر، فارسی ۷۰ کاراکتر، باینری ۱۴۰ بایت
+  (چندبخشی: لاتین ۱۵۳ و فارسی ۶۷ در هر بخش، سقف ۲۶۵ بخش).
+* **`messages`:** اگر `count` داده نشود یا بیش از ۱۰۰ باشد، ۱۰۰ در نظر گرفته می‌شود.
+* **`uid`:** برای جلوگیری از ارسال تکراری در زمان TIMEOUT — بعداً با `GetMidAsync(uid)` چک کنید.
+* **`Timeout`:** پیش‌فرض ۶۰ ثانیه، قابل تغییر است.
 * **`userId` در خروجی `send`:** در پیامک موفق به‌صورت عدد و در ناموفق به‌صورت رشته (`"1223"`) برمی‌گردد؛
   کلاینت هر دو را درست به `long` تبدیل می‌کند.
-* `MagfaClient` را در پایان کار `Dispose` کنید (`using`).
-* اگر خطای `29` گرفتید، IP سرور شما باید در پنل مگفا در بخش «آی‌پی‌های معتبر» ثبت شده باشد.
+* کلاینت را در پایان کار `Dispose` کنید (`using`).
+* اگر خطای `29` گرفتید، IP سرور شما باید در پنل مگفا («آی‌پی‌های معتبر») ثبت شده باشد.
+* اگر خطای `22` گرفتید، سرویس موردنظر (HTTP یا SOAP) برای حساب فعال نشده — با واحد فروش مگفا تماس بگیرید.
