@@ -1,0 +1,14 @@
+## .NET build outputs
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+
+## Visual Studio
+.vs/
+*.ncrunch*
+*.DotSettings
